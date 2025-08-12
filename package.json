@@ -1,0 +1,32 @@
+{
+  "name": "nest-ai-demos",
+  "version": "1.0.0",
+  "description": "流式响应调试全栈应用 - 包含前端React应用和后端NestJS API服务",
+  "main": "index.js",
+  "scripts": {
+    "start": "./start.sh",
+    "start:win": "start.bat",
+    "start:backend": "cd backend && npm run start:dev",
+    "start:frontend": "cd frontend && npm start",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+    "test": "cd backend && npm test && cd ../frontend && npm test",
+    "clean": "rm -rf backend/node_modules frontend/node_modules backend/dist",
+    "clean:win": "rmdir /s /q backend\\node_modules frontend\\node_modules backend\\dist"
+  },
+  "keywords": [
+    "streaming",
+    "nestjs",
+    "react",
+    "typescript",
+    "api",
+    "debug",
+    "real-time"
+  ],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+}

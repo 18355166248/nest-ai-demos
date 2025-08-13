@@ -6,7 +6,7 @@ const AIStreaming: React.FC = () => {
   const [responseType, setResponseType] = useState<
     "story" | "code" | "explanation"
   >("explanation");
-  const [speed, setSpeed] = useState<"slow" | "normal" | "fast">("normal");
+  const [speed, setSpeed] = useState<"slow" | "normal" | "fast">("fast");
   const [response, setResponse] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [controller, setController] = useState<AbortController | null>(null);
@@ -22,7 +22,7 @@ const AIStreaming: React.FC = () => {
 
     try {
       const response = await fetch(
-        `/streaming/simulate-ai?prompt=${encodeURIComponent(
+        `http://localhost:3001/streaming/simulate-ai?prompt=${encodeURIComponent(
           prompt
         )}&responseType=${responseType}&speed=${speed}`,
         {
@@ -49,7 +49,13 @@ const AIStreaming: React.FC = () => {
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        accumulatedResponse += chunk;
+        let data: any = {};
+        try {
+          data = JSON.parse(chunk);
+        } catch (error) {}
+        if (data.type === "char") {
+          accumulatedResponse += data.char;
+        }
         setResponse(accumulatedResponse);
       }
     } catch (error: any) {
@@ -84,7 +90,7 @@ const AIStreaming: React.FC = () => {
 
   return (
     <div>
-      <h2>AI流式响应</h2>
+      <h2>Fetch请求</h2>
       <p style={{ color: "#718096", marginBottom: "16px" }}>
         模拟AI的流式响应，支持不同类型的输出和速度控制
       </p>
@@ -153,7 +159,7 @@ const AIStreaming: React.FC = () => {
           disabled={isLoading || !prompt.trim()}
         >
           <Play size={16} />
-          开始AI流式响应
+          开始流式响应
         </button>
 
         {isLoading && (

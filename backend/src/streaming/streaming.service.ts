@@ -116,7 +116,7 @@ export class StreamingService {
     speed: string,
     res: Response
   ): Promise<void> {
-    const speedMap = { slow: 200, normal: 100, fast: 50 };
+    const speedMap = { slow: 100, normal: 60, fast: 20 };
     const delay = speedMap[speed] || 100;
 
     let response = "";
@@ -145,7 +145,7 @@ export class StreamingService {
 
       // 发送字符数据
       res.write(
-        `data: ${JSON.stringify({
+        `${JSON.stringify({
           type: "char",
           char,
           position: i,
@@ -157,57 +157,7 @@ export class StreamingService {
     }
 
     // 发送生成完成事件
-    res.write("event: generated\ndata: 内容生成完成\n\n");
-  }
-
-  /**
-   * 流式进度条响应
-   */
-  async streamProgress(
-    totalSteps: number,
-    stepDelay: number,
-    res: Response
-  ): Promise<void> {
-    // 发送进度开始事件
-    res.write("event: progress_start\ndata: 开始处理任务...\n\n");
-
-    for (let i = 1; i <= totalSteps; i++) {
-      const percentage = Math.round((i / totalSteps) * 100);
-      const progressBar = this.createProgressBar(percentage, 50);
-
-      // 发送进度数据
-      res.write(
-        `data: ${JSON.stringify({
-          type: "progress",
-          step: i,
-          totalSteps,
-          percentage,
-          progressBar,
-          message: `步骤 ${i}/${totalSteps} - ${percentage}% 完成`,
-        })}\n\n`
-      );
-
-      if (i < totalSteps) {
-        res.write("data: 正在处理下一步...\n\n");
-        await this.sleep(stepDelay);
-      }
-    }
-
-    // 发送进度完成事件
-    res.write("event: progress_complete\ndata: �� 任务完成！\n\n");
-  }
-
-  /**
-   * 创建进度条
-   */
-  private createProgressBar(percentage: number, width: number): string {
-    const filledWidth = Math.round((percentage / 100) * width);
-    const emptyWidth = width - filledWidth;
-
-    const filled = "█".repeat(filledWidth);
-    const empty = "░".repeat(emptyWidth);
-
-    return `[${filled}${empty}]`;
+    res.write("event: complete\ndata: 内容生成完成\n\n");
   }
 
   /**

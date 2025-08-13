@@ -80,11 +80,9 @@ export class StreamingController {
     }
 
     // 设置SSE响应头
-    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Content-Type", "text/plain");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Headers", "Cache-Control");
 
     try {
       // 发送开始事件
@@ -102,51 +100,6 @@ export class StreamingController {
       res.end();
     } catch (error) {
       console.error("AI流式响应错误:", error);
-      res.write(
-        `event: error\ndata: ${JSON.stringify({ error: error.message })}\n\n`
-      );
-      res.end();
-    }
-  }
-
-  @Get("progress")
-  @ApiOperation({ summary: "进度条流式响应" })
-  @ApiQuery({ name: "totalSteps", description: "总步骤数", required: false })
-  @ApiQuery({
-    name: "stepDelay",
-    description: "每步延迟时间(毫秒)",
-    required: false,
-  })
-  async streamProgress(
-    @Query("totalSteps") totalSteps: string = "10",
-    @Query("stepDelay") stepDelay: string = "500",
-    @Res() res: Response
-  ) {
-    const totalStepsNum = parseInt(totalSteps, 10) || 10;
-    const stepDelayNum = parseInt(stepDelay, 10) || 500;
-
-    // 设置SSE响应头
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Headers", "Cache-Control");
-
-    try {
-      // 发送开始事件
-      res.write("event: start\ndata: 开始处理任务...\n\n");
-
-      await this.streamingService.streamProgress(
-        totalStepsNum,
-        stepDelayNum,
-        res
-      );
-
-      // 发送完成事件
-      res.write("event: complete\ndata: 任务处理完成\n\n");
-      res.end();
-    } catch (error) {
-      console.error("进度流式响应错误:", error);
       res.write(
         `event: error\ndata: ${JSON.stringify({ error: error.message })}\n\n`
       );

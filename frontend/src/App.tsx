@@ -1,18 +1,14 @@
 import React, { useState } from "react";
-import { MessageSquare, Brain, BarChart3, Play, Square } from "lucide-react";
+import { MessageSquare, BarChart3 } from "lucide-react";
 import ChatStreaming from "./components/ChatStreaming";
 import AIStreaming from "./components/AIStreaming";
-import ProgressStreaming from "./components/ProgressStreaming";
 
 function App() {
-  const [activeTab, setActiveTab] = useState<"chat" | "ai" | "progress">(
-    "chat"
-  );
-
+  const [activeTab, setActiveTab] = useState<"chat" | "ai">("chat");
+ 
   const tabs = [
-    { id: "chat", label: "聊天流式响应", icon: MessageSquare },
-    { id: "ai", label: "AI流式响应", icon: Brain },
-    { id: "progress", label: "进度条流式响应", icon: BarChart3 },
+    { id: "chat", label: "EventSource", icon: MessageSquare },
+    { id: "ai", label: "Fetch", icon: BarChart3 },
   ];
 
   return (
@@ -54,7 +50,6 @@ function App() {
 
         {activeTab === "chat" && <ChatStreaming />}
         {activeTab === "ai" && <AIStreaming />}
-        {activeTab === "progress" && <ProgressStreaming />}
       </div>
     </div>
   );

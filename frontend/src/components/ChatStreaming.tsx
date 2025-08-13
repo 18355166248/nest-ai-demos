@@ -63,7 +63,7 @@ const ChatStreaming: React.FC = () => {
 
   return (
     <div>
-      <h2>AI聊天流式响应</h2>
+      <h2>EventSource</h2>
       <p style={{ color: "#718096", marginBottom: "16px" }}>
         体验真正的AI对话流式响应，支持智能回复生成和实时流式输出
       </p>
@@ -102,7 +102,7 @@ const ChatStreaming: React.FC = () => {
           disabled={isLoading || !message.trim()}
         >
           <Play size={16} />
-          开始AI对话
+          开始聊天
         </button>
 
         {isLoading && (

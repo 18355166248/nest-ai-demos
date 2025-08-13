@@ -21,14 +21,15 @@ const AIStreaming: React.FC = () => {
     setController(abortController);
 
     try {
-      const response = await fetch("/streaming/simulate-ai", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ prompt, responseType, speed }),
-        signal: abortController.signal,
-      });
+      const response = await fetch(
+        `/streaming/simulate-ai?prompt=${encodeURIComponent(
+          prompt
+        )}&responseType=${responseType}&speed=${speed}`,
+        {
+          method: "GET",
+          signal: abortController.signal,
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

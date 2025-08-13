@@ -1,111 +1,156 @@
-import { Controller, Post, Body, Res, HttpStatus } from '@nestjs/common';
-import { Response } from 'express';
-import { StreamingService } from './streaming.service';
-import { ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
+import { Controller, Get, Query, Res, HttpStatus } from "@nestjs/common";
+import { Response } from "express";
+import { StreamingService } from "./streaming.service";
+import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
 
-@ApiTags('流式响应')
-@Controller('streaming')
+@ApiTags("流式响应")
+@Controller("streaming")
 export class StreamingController {
   constructor(private readonly streamingService: StreamingService) {}
 
-  @Post('chat')
-  @ApiOperation({ summary: '流式聊天响应' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string', description: '用户输入的消息' },
-        delay: { type: 'number', description: '每个字符的延迟时间(毫秒)', default: 100 }
-      },
-      required: ['message']
-    }
+  @Get("chat")
+  @ApiOperation({ summary: "流式聊天响应" })
+  @ApiQuery({ name: "message", description: "用户输入的消息", required: true })
+  @ApiQuery({
+    name: "delay",
+    description: "每个字符的延迟时间(毫秒)",
+    required: false,
   })
-  async streamChat(@Body() body: { message: string; delay?: number }, @Res() res: Response) {
-    const { message, delay = 100 } = body;
+  async streamChat(
+    @Query("message") message: string,
+    @Query("delay") delay: string = "100",
+    @Res() res: Response
+  ) {
+    const delayNum = parseInt(delay, 10) || 100;
 
     if (!message) {
-      return res.status(HttpStatus.BAD_REQUEST).json({ error: '消息不能为空' });
+      return res.status(HttpStatus.BAD_REQUEST).json({ error: "消息不能为空" });
     }
 
-    // 设置响应头，启用流式传输
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Transfer-Encoding', 'chunked');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    // 设置SSE响应头
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
 
     try {
-      await this.streamingService.streamResponse(message, delay, res);
+      // 发送开始事件
+      res.write("event: start\ndata: 开始处理您的消息...\n\n");
+
+      res.flushHeaders();
+
+      // 调用流式响应服务
+      this.streamingService.streamResponse(message, delayNum, res);
+
+      // 响应完成
+      // res.end();
     } catch (error) {
-      console.error('流式响应错误:', error);
-      res.end('错误: ' + error.message);
+      console.error("流式响应错误:", error);
+      res.write(
+        `event: error\ndata: ${JSON.stringify({ error: error.message })}\n\n`
+      );
+      res.end();
     }
   }
 
-  @Post('simulate-ai')
-  @ApiOperation({ summary: '模拟AI流式响应' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        prompt: { type: 'string', description: 'AI提示词' },
-        responseType: { type: 'string', enum: ['story', 'code', 'explanation'], description: '响应类型' },
-        speed: { type: 'string', enum: ['slow', 'normal', 'fast'], description: '响应速度', default: 'normal' }
-      },
-      required: ['prompt']
-    }
+  @Get("simulate-ai")
+  @ApiOperation({ summary: "模拟AI流式响应" })
+  @ApiQuery({ name: "prompt", description: "AI提示词", required: true })
+  @ApiQuery({
+    name: "responseType",
+    description: "响应类型",
+    required: false,
+    enum: ["story", "code", "explanation"],
+  })
+  @ApiQuery({
+    name: "speed",
+    description: "响应速度",
+    required: false,
+    enum: ["slow", "normal", "fast"],
   })
   async simulateAIResponse(
-    @Body() body: { prompt: string; responseType?: string; speed?: string },
+    @Query("prompt") prompt: string,
+    @Query("responseType") responseType: string = "explanation",
+    @Query("speed") speed: string = "normal",
     @Res() res: Response
   ) {
-    const { prompt, responseType = 'explanation', speed = 'normal' } = body;
-
     if (!prompt) {
-      return res.status(HttpStatus.BAD_REQUEST).json({ error: '提示词不能为空' });
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .json({ error: "提示词不能为空" });
     }
 
-    // 设置响应头
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Transfer-Encoding', 'chunked');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    // 设置SSE响应头
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Headers", "Cache-Control");
 
     try {
-      await this.streamingService.simulateAIStream(prompt, responseType, speed, res);
+      // 发送开始事件
+      res.write("event: start\ndata: 开始生成AI响应...\n\n");
+
+      await this.streamingService.simulateAIStream(
+        prompt,
+        responseType,
+        speed,
+        res
+      );
+
+      // 发送完成事件
+      res.write("event: complete\ndata: AI响应生成完成\n\n");
+      res.end();
     } catch (error) {
-      console.error('AI流式响应错误:', error);
-      res.end('错误: ' + error.message);
+      console.error("AI流式响应错误:", error);
+      res.write(
+        `event: error\ndata: ${JSON.stringify({ error: error.message })}\n\n`
+      );
+      res.end();
     }
   }
 
-  @Post('progress')
-  @ApiOperation({ summary: '进度条流式响应' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        totalSteps: { type: 'number', description: '总步骤数', default: 10 },
-        stepDelay: { type: 'number', description: '每步延迟时间(毫秒)', default: 500 }
-      }
-    }
+  @Get("progress")
+  @ApiOperation({ summary: "进度条流式响应" })
+  @ApiQuery({ name: "totalSteps", description: "总步骤数", required: false })
+  @ApiQuery({
+    name: "stepDelay",
+    description: "每步延迟时间(毫秒)",
+    required: false,
   })
   async streamProgress(
-    @Body() body: { totalSteps?: number; stepDelay?: number },
+    @Query("totalSteps") totalSteps: string = "10",
+    @Query("stepDelay") stepDelay: string = "500",
     @Res() res: Response
   ) {
-    const { totalSteps = 10, stepDelay = 500 } = body;
+    const totalStepsNum = parseInt(totalSteps, 10) || 10;
+    const stepDelayNum = parseInt(stepDelay, 10) || 500;
 
-    // 设置响应头
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Transfer-Encoding', 'chunked');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    // 设置SSE响应头
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Headers", "Cache-Control");
 
     try {
-      await this.streamingService.streamProgress(totalSteps, stepDelay, res);
+      // 发送开始事件
+      res.write("event: start\ndata: 开始处理任务...\n\n");
+
+      await this.streamingService.streamProgress(
+        totalStepsNum,
+        stepDelayNum,
+        res
+      );
+
+      // 发送完成事件
+      res.write("event: complete\ndata: 任务处理完成\n\n");
+      res.end();
     } catch (error) {
-      console.error('进度流式响应错误:', error);
-      res.end('错误: ' + error.message);
+      console.error("进度流式响应错误:", error);
+      res.write(
+        `event: error\ndata: ${JSON.stringify({ error: error.message })}\n\n`
+      );
+      res.end();
     }
   }
 }

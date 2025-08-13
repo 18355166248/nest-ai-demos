@@ -3,60 +3,55 @@ import { Play, Square } from "lucide-react";
 
 const ChatStreaming: React.FC = () => {
   const [message, setMessage] = useState("");
-  const [delay, setDelay] = useState(100);
+  const [delay, setDelay] = useState(20);
   const [response, setResponse] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [controller, setController] = useState<AbortController | null>(null);
+  const [status, setStatus] = useState("");
 
   const handleStream = async () => {
     if (!message.trim()) return;
 
     setIsLoading(true);
     setResponse("");
+    setStatus("");
 
     const abortController = new AbortController();
     setController(abortController);
 
     try {
-      const response = await fetch("/streaming/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message, delay }),
-        signal: abortController.signal,
+      const es = new EventSource(
+        `http://localhost:3001/streaming/chat?message=${encodeURIComponent(
+          message
+        )}&delay=${delay}`
+      );
+      es.onmessage = (e) => {
+        if (e.data) {
+          const data = JSON.parse(e.data);
+          if (data.type === "chat") {
+            setResponse((prev) => prev + data.char);
+          }
+        }
+      };
+      es.addEventListener("complete", (res) => {
+        console.log("complete", res);
+        setIsLoading(false);
+        setStatus("完成");
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error("无法获取响应流");
-      }
-
-      const decoder = new TextDecoder();
-      let accumulatedResponse = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        accumulatedResponse += chunk;
-        setResponse(accumulatedResponse);
-      }
+      es.addEventListener("error", (res) => {
+        console.log("error", res);
+        setIsLoading(false);
+        setStatus("错误");
+      });
     } catch (error: any) {
       if (error.name === "AbortError") {
         setResponse((prev) => prev + "\n\n[请求已取消]");
       } else {
         setResponse(`错误: ${error.message}`);
       }
-    } finally {
       setIsLoading(false);
       setController(null);
+      setStatus("");
     }
   };
 
@@ -68,9 +63,9 @@ const ChatStreaming: React.FC = () => {
 
   return (
     <div>
-      <h2>聊天流式响应</h2>
+      <h2>AI聊天流式响应</h2>
       <p style={{ color: "#718096", marginBottom: "16px" }}>
-        测试聊天消息的流式响应，可以调整每个字符的延迟时间
+        体验真正的AI对话流式响应，支持智能回复生成和实时流式输出
       </p>
 
       <div className="controls">
@@ -81,7 +76,7 @@ const ChatStreaming: React.FC = () => {
             className="textarea"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="输入您要发送的消息..."
+            placeholder="输入您要发送的消息...（试试：你好、天气、学习、编程、笑话等）"
           />
         </div>
 
@@ -107,7 +102,7 @@ const ChatStreaming: React.FC = () => {
           disabled={isLoading || !message.trim()}
         >
           <Play size={16} />
-          开始流式响应
+          开始AI对话
         </button>
 
         {isLoading && (
@@ -122,8 +117,24 @@ const ChatStreaming: React.FC = () => {
         )}
       </div>
 
+      {status && (
+        <div
+          style={{
+            marginBottom: "16px",
+            padding: "8px 12px",
+            background: "#f7fafc",
+            border: "1px solid #e2e8f0",
+            borderRadius: "6px",
+            fontSize: "14px",
+            color: "#4a5568",
+          }}
+        >
+          {status}
+        </div>
+      )}
+
       <div className={`response-area ${isLoading ? "loading" : ""}`}>
-        {response || "响应内容将在这里显示..."}
+        {response || "AI回复将在这里实时显示..."}
         {isLoading && (
           <div style={{ position: "absolute", top: "8px", right: "8px" }}>
             <div className="loading-spinner"></div>

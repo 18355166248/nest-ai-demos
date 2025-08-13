@@ -16,14 +16,13 @@ const ProgressStreaming: React.FC = () => {
     setController(abortController);
 
     try {
-      const response = await fetch("/streaming/progress", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ totalSteps, stepDelay }),
-        signal: abortController.signal,
-      });
+      const response = await fetch(
+        `/streaming/progress?totalSteps=${totalSteps}&stepDelay=${stepDelay}`,
+        {
+          method: "GET",
+          signal: abortController.signal,
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
